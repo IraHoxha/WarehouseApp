@@ -1,6 +1,6 @@
 using warehouseapp.Enums;
 
-namespace warehouseapp.ViewModels
+namespace warehouseapp.ViewModels.Product
 {
     public class ProductRequestViewModel
     {

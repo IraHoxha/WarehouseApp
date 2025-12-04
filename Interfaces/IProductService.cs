@@ -1,5 +1,5 @@
 using warehouseapp.Data.Models;
-using warehouseapp.ViewModels;
+using warehouseapp.ViewModels.Product;
 
 namespace warehouseapp.Interfaces{
     public interface IProductService

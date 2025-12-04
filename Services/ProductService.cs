@@ -4,7 +4,7 @@ using warehouse.Data;
 using warehouseapp.Data.Models;
 using warehouseapp.Exceptions;
 using warehouseapp.Interfaces;
-using warehouseapp.ViewModels;
+using warehouseapp.ViewModels.Product;
 
 namespace WarehouseApp.Services
 {

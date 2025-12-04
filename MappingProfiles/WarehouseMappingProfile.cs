@@ -1,6 +1,7 @@
 using AutoMapper;
 using warehouseapp.Data.Models;
 using warehouseapp.ViewModels;
+using warehouseapp.ViewModels.Product;
 
 namespace warehouseapp.Mappings
 {
