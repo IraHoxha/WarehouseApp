@@ -149,3 +149,4 @@
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/ref/warehouseapp.dll
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/scopedcss/Components/Layout/SideBar.razor.rz.scp.css
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/scopedcss/Components/Layout/TopNav.razor.rz.scp.css
+/Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/warehouseapp.sourcelink.json

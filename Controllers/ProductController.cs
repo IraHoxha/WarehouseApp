@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using warehouseapp.Interfaces;
-using warehouseapp.ViewModels;
+using warehouseapp.ViewModels.Product;
 using warehouseapp.Exceptions;
 
 namespace warehouseapp.Controllers
