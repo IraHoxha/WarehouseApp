@@ -1,0 +1,20 @@
+@using BlazorBootstrap
+
+<Navbar Color="Color.Primary" DarkMode="true" Class="topnav px-4">
+
+    <NavbarBrand class="d-flex align-items-center">
+        <span class="topnav-title">Warehouse System</span>
+    </NavbarBrand>
+
+    <NavbarNav class="ms-auto d-flex align-items-center topnav-links">
+
+        <NavLink class="topnav-link" href="/products">Products</NavLink>
+        <NavItem><NavLink class="topnav-link" href="/vendors">Vendors</NavLink></NavItem>
+        <NavItem><NavLink class="topnav-link" href="/customers">Customers</NavLink></NavItem>
+        <NavItem><NavLink class="topnav-link" href="/orders">Orders</NavLink></NavItem>
+
+        <input type="text" class="topnav-search ms-3" placeholder="Search..." />
+
+    </NavbarNav>
+
+</Navbar>

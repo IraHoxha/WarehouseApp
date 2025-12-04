@@ -1,0 +1,10 @@
+.layout-container {
+    height: 100vh;
+    overflow: hidden;
+}
+
+.content-area {
+    background: #f5f7fa;
+    flex-grow: 1;
+    overflow-y: auto;
+}
