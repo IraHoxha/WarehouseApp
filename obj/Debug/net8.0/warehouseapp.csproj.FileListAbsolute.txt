@@ -32,6 +32,8 @@
 /Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/Microsoft.Extensions.DependencyInjection.dll
 /Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
 /Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/Microsoft.Extensions.DependencyModel.dll
+/Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/Microsoft.Extensions.Localization.dll
+/Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/Microsoft.Extensions.Localization.Abstractions.dll
 /Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/Microsoft.Extensions.Logging.Abstractions.dll
 /Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/Microsoft.Extensions.Options.dll
 /Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/Microsoft.Identity.Client.dll
@@ -46,6 +48,7 @@
 /Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/Microsoft.SqlServer.Server.dll
 /Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/Microsoft.Win32.SystemEvents.dll
 /Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/Mono.TextTemplating.dll
+/Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/MudBlazor.dll
 /Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/System.CodeDom.dll
 /Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/System.Composition.AttributedModel.dll
 /Users/irida/warehouse-solution/src/warehouseapp/bin/Debug/net8.0/System.Composition.Convention.dll
@@ -131,10 +134,12 @@
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/warehouseapp.AssemblyInfo.cs
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/warehouseapp.csproj.CoreCompileInputs.cache
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/warehouseapp.MvcApplicationPartsAssemblyInfo.cache
+/Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/warehouseapp.sourcelink.json
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/rjimswa.dswa.cache.json
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/rjsmrazor.dswa.cache.json
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/rjsmcshtml.dswa.cache.json
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/scopedcss/Components/Layout/MainLayout.razor.rz.scp.css
+/Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/scopedcss/Components/Layout/SideBar.razor.rz.scp.css
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/scopedcss/bundle/warehouseapp.styles.css
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/scopedcss/projectbundle/warehouseapp.bundle.scp.css
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/staticwebassets.build.json
@@ -147,6 +152,3 @@
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/warehouseapp.pdb
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/warehouseapp.genruntimeconfig.cache
 /Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/ref/warehouseapp.dll
-/Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/scopedcss/Components/Layout/SideBar.razor.rz.scp.css
-/Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/scopedcss/Components/Layout/TopNav.razor.rz.scp.css
-/Users/irida/warehouse-solution/src/warehouseapp/obj/Debug/net8.0/warehouseapp.sourcelink.json

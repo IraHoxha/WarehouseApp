@@ -1,11 +1,53 @@
-<div class="sidebar">
-    <h4 class="sidebar-title">Menu</h4>
+<div class="sidebar bg-dark text-white">
 
-    <nav class="sidebar-menu">
-        <a href="/" class="sidebar-link">Dashboard</a>
-        <a href="/inventory" class="sidebar-link">Inventory</a>
-        <a href="/suppliers" class="sidebar-link">Supplier Management</a>
-        <a href="/customers" class="sidebar-link">Customer Management</a>
-        <a href="/orders" class="sidebar-link">Orders</a>
-    </nav>
+    <a href="/" class="p-3 fs-4 fw-bold border-bottom border-secondary sidebar-brand text-white text-decoration-none d-flex align-items-center">
+        <i class="fa-solid fa-warehouse me-2"></i>
+        Warehouse System
+    </a>
+
+    <a href="/" class="sidebar-section sidebar-link-section">
+        <i class="fa-solid fa-house me-2"></i> Home
+    </a>
+
+    <a href="/dashboard" class="sidebar-section sidebar-link-section">
+        <i class="fa-solid fa-chart-line me-2"></i> Dashboard
+    </a>
+
+    <div class="sidebar-section">
+        <i class="fa-solid fa-boxes-stacked me-2"></i> Inventory
+    </div>
+    <a class="sidebar-link" href="/inventory/overview">Overview</a>
+    <a class="sidebar-link" href="/inventory/transactions">Transactions</a>
+
+    <div class="sidebar-section">
+        <i class="fa-solid fa-tags me-2"></i> Products
+    </div>  
+
+    <a class="sidebar-link" href="/products">Product List</a>
+
+    <div class="sidebar-section" style="margin-left:16px;">
+        <i class="fa-solid fa-folder-tree me-2"></i> Categories
+    </div>  
+
+    <a class="sidebar-link" style="margin-left:28px;" href="/categories">Category Tree</a>
+
+    <div class="sidebar-section">
+        <i class="fa-solid fa-user-group me-2"></i> Partners
+    </div>
+    <a class="sidebar-link" href="/partners/suppliers">Suppliers</a>
+    <a class="sidebar-link" href="/partners/customers">Customers</a>
+
+    <div class="sidebar-section">
+        <i class="fa-solid fa-file-invoice me-2"></i> Orders
+    </div>
+    <a class="sidebar-link" href="/orders/list">Order List</a>
+    <a class="sidebar-link" href="/orders/sales">Sales Orders</a>
+    <a class="sidebar-link" href="/orders/purchases">Purchase Orders</a>
+
+    <div class="sidebar-section">
+        <i class="fa-solid fa-gear me-2"></i> Settings
+    </div>
+    <a class="sidebar-link" href="/settings/units">Units of Measurement</a>
+    <a class="sidebar-link" href="/settings/app">Application Settings</a>
+
 </div>

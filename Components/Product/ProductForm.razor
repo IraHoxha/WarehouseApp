@@ -1,0 +1,178 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using warehouseapp.Enums
+@using warehouseapp.ViewModels.Category
+@using warehouseapp.ViewModels.Product
+
+@namespace warehouseapp.Components.Product
+
+<EditForm Model="Model" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+
+    <div class="card shadow-sm p-4">
+
+        <div class="row">
+            <div class="col-md-6">
+
+                <div class="mb-3">
+                    <label class="form-label">SKU</label>
+                    <InputText class="form-control" @bind-Value="Model.SKU" />
+                    <ValidationMessage For="@(() => Model.SKU)" />
+
+                    @if (!IsEdit)
+                    {
+                        <small class="text-muted">
+                            SKU is auto-generated from category and name. You can edit it.
+                        </small>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <InputText class="form-control"
+                               Value="@Model.Name"
+                               ValueChanged="OnNameValueChanged"
+                               ValueExpression="@(() => Model.Name)" />
+                    <ValidationMessage For="@(() => Model.Name)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <InputTextArea class="form-control"
+                                   rows="3"
+                                   @bind-Value="Model.Description" />
+                </div>
+
+                <div class="form-check mb-3">
+                    <InputCheckbox class="form-check-input"
+                                   @bind-Value="Model.HasExpiration" />
+                    <label class="form-check-label ms-2">
+                        Has Expiration
+                    </label>
+                </div>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <div class="mb-3">
+                    <label class="form-label">Unit of Measurement</label>
+
+                    <InputSelect TValue="UnitOfMeasurementEnum?"
+                                 class="form-control"
+                                 @bind-Value="Model.UnitOfMeasurement">
+                        <option value="">-- Select Unit --</option>
+                        @foreach (UnitOfMeasurementEnum unit
+                                 in Enum.GetValues(typeof(UnitOfMeasurementEnum)))
+                        {
+                            <option value="@unit">@unit</option>
+                        }
+                    </InputSelect>
+
+                    <ValidationMessage For="@(() => Model.UnitOfMeasurement)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Category</label>
+
+                    <InputSelect TValue="int"
+                                 class="form-control"
+                                 Value="@Model.CategoryId"
+                                 ValueChanged="OnCategoryValueChanged"
+                                 ValueExpression="@(() => Model.CategoryId)">
+                        <option value="0">-- Select Category --</option>
+                        @foreach (var c in Categories)
+                        {
+                            <option value="@c.Id">@c.Name</option>
+                        }
+                    </InputSelect>
+
+                    <ValidationMessage For="@(() => Model.CategoryId)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Unit Cost Price</label>
+                    <InputNumber TValue="decimal"
+                                 class="form-control"
+                                 @bind-Value="Model.UnitCostPrice" />
+                    <ValidationMessage For="@(() => Model.UnitCostPrice)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Unit Selling Price</label>
+                    <InputNumber TValue="decimal"
+                                 class="form-control"
+                                 @bind-Value="Model.UnitSellingPrice" />
+                    <ValidationMessage For="@(() => Model.UnitSellingPrice)" />
+                </div>
+
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-4">
+            <button type="submit"
+                    class="btn btn-primary px-4"
+                    disabled="@IsSaving">
+                @(IsSaving ? "Saving..." : ButtonText)
+            </button>
+        </div>
+
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public ProductRequestViewModel Model { get; set; } = new();
+    [Parameter] public List<CategorySelectItemViewModel> Categories { get; set; } = new();
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public bool IsSaving { get; set; }
+    [Parameter] public string ButtonText { get; set; } = "Save";
+
+    private bool IsEdit => !string.IsNullOrWhiteSpace(Model.SKU);
+
+    private async Task HandleValidSubmit()
+    {
+        await OnSubmit.InvokeAsync();
+    }
+
+    private void OnNameValueChanged(string value)
+    {
+        Model.Name = value;
+        GenerateSkuIfNeeded();
+    }
+
+    private void OnCategoryValueChanged(int value)
+    {
+        Model.CategoryId = value;
+        GenerateSkuIfNeeded();
+    }
+
+    private void GenerateSkuIfNeeded()
+    {
+        if (IsEdit) return;
+
+        if (Model.CategoryId == 0 || string.IsNullOrWhiteSpace(Model.Name))
+        {
+            Model.SKU = "";
+            return;
+        }
+
+        var category = Categories.FirstOrDefault(c => c.Id == Model.CategoryId);
+        if (category == null) return;
+
+        var cat = Normalize(category.Name, 3);
+        var name = Normalize(Model.Name, 20);
+
+        Model.SKU = $"{cat}-{name}";
+    }
+
+    private static string Normalize(string value, int maxLength)
+    {
+        var cleaned = new string(
+            value.ToUpperInvariant()
+                 .Where(char.IsLetterOrDigit)
+                 .ToArray());
+
+        return cleaned.Length > maxLength
+            ? cleaned[..maxLength]
+            : cleaned;
+    }
+}

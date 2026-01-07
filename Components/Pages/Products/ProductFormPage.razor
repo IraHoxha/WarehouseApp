@@ -1,0 +1,166 @@
+@page "/products/create"
+@page "/products/edit/{Id:int}"
+
+@using warehouseapp.ViewModels.Product
+@using warehouseapp.ViewModels.Category
+@using warehouseapp.ViewModels.Tag
+@using warehouseapp.Components.Product
+@using warehouseapp.Components.Shared
+@using warehouseapp.Enums
+@using warehouseapp.Helpers
+@using System.Net.Http.Json
+
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<h3 class="mb-4">@Title</h3>
+
+@if (IsLoaded)
+{
+    <ProductForm
+        Model="Model"
+        Categories="Categories"
+        ButtonText="@ButtonText"
+        IsSaving="IsSaving"
+        OnSubmit="Save" />
+
+    <hr class="my-4" />
+
+    <h5 class="mb-3 fw-semibold">Product Tags</h5>
+
+    @if (IsEdit)
+    {
+        <TagManager Mode="Edit" ProductId="@Id" />
+    }
+    else
+    {
+        <TagManager Mode="Create" @bind-Tags="TempTags" />
+    }
+}
+else
+{
+    <p>Loading...</p>
+}
+
+<PopupAlert Message="@PopupMessage"
+            Type="@PopupType"
+            OnClose="ClearPopup" />
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private ProductRequestViewModel Model = new();
+    private List<CategorySelectItemViewModel> Categories = new();
+    private List<ProductTagDisplayViewModel> TempTags = new();
+
+    private bool IsSaving;
+    private bool IsLoaded;
+
+    private string? PopupMessage;
+    private PopupAlertType PopupType = PopupAlertType.Error;
+
+    private bool IsEdit => Id.HasValue;
+    private string Title => IsEdit ? "Edit Product" : "Create Product";
+    private string ButtonText => IsEdit ? "Update Product" : "Create Product";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Categories =
+                await Http.GetFromJsonAsync<List<CategorySelectItemViewModel>>(
+                    "api/category/select-leaf") ?? new();
+
+            if (IsEdit)
+            {
+                await LoadProduct();
+            }
+            else
+            {
+                Model = new ProductRequestViewModel
+                {
+                    UnitCostPrice = 0,
+                    UnitSellingPrice = 0,
+                    HasExpiration = false,
+                    ReorderLevel = 5
+                };
+            }
+
+            IsLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            PopupMessage = ex.Message;
+            PopupType = PopupAlertType.Error;
+        }
+    }
+
+    private async Task LoadProduct()
+    {
+        var res = await Http.GetAsync($"api/products/{Id}/edit");
+
+        if (!res.IsSuccessStatusCode)
+        {
+            PopupMessage = await ApiErrorReader.ReadMessageAsync(res);
+            PopupType = PopupAlertType.Error;
+            return;
+        }
+
+        var data = await res.Content.ReadFromJsonAsync<ProductEditResponseViewModel>();
+        if (data == null)
+            return;
+
+        Model = new ProductRequestViewModel
+        {
+            SKU = data.SKU,
+            Name = data.Name,
+            Description = data.Description,
+            UnitOfMeasurement = data.UnitOfMeasurement,
+            CategoryId = data.CategoryId,
+            UnitCostPrice = data.UnitCostPrice,
+            UnitSellingPrice = data.UnitSellingPrice,
+            HasExpiration = data.HasExpiration,
+            ReorderLevel = data.ReorderLevel
+        };
+    }
+
+    private async Task Save()
+    {
+        PopupMessage = null;
+
+        if (Model.CategoryId <= 0)
+        {
+            PopupMessage = "Please select a category.";
+            PopupType = PopupAlertType.Error;
+            return;
+        }
+
+        if (!Model.UnitOfMeasurement.HasValue)
+        {
+            PopupMessage = "Please select unit of measurement.";
+            PopupType = PopupAlertType.Error;
+            return;
+        }
+
+        IsSaving = true;
+
+        HttpResponseMessage res = IsEdit
+            ? await Http.PutAsJsonAsync($"api/products/{Id}", Model)
+            : await Http.PostAsJsonAsync("api/products", Model);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            PopupMessage = await ApiErrorReader.ReadMessageAsync(res);
+            PopupType = PopupAlertType.Error;
+            IsSaving = false;
+            return;
+        }
+
+        Nav.NavigateTo("/products?success=1", true);
+    }
+
+    private void ClearPopup()
+    {
+        PopupMessage = null;
+    }
+}

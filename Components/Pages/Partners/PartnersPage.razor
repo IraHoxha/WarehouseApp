@@ -1,0 +1,224 @@
+@page "/partners/{Type:alpha}"
+
+@using warehouseapp.ViewModels.Partner
+@using warehouseapp.Enums
+@using warehouseapp.Components.Partner
+@using warehouseapp.Components.Shared
+@using warehouseapp.Helpers
+@using System.Net.Http.Json
+
+@inject HttpClient Http
+
+<h3 class="mb-3">@Title</h3>
+
+<button class="btn btn-primary mb-3" @onclick="OpenCreate">
+    + Add @SingleTitle
+</button>
+
+<input class="form-control mb-3"
+       placeholder="Search..."
+       value="@Search"
+       @oninput="OnSearchInput" />
+
+@if (partners.Count == 0)
+{
+    <p class="text-muted">No @LowerTitle found.</p>
+}
+else
+{
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in partners)
+            {
+                <tr>
+                    <td>@p.Name</td>
+                    <td>@p.Email</td>
+                    <td>@p.PhoneNumber</td>
+                    <td>@p.Address</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-icon-green me-1"
+                                @onclick="() => OpenEdit(p)">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+
+                        <button class="btn btn-sm btn-icon-pink"
+                                @onclick="() => Delete(p.Id)">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<PartnerFormModal
+    Visible="ShowModal"
+    Title="@ModalTitle"
+    Model="Current"
+    IsSaving="IsSaving"
+    OnSubmit="Save"
+    OnClose="CloseModal" />
+
+<PopupAlert
+    Message="@PopupMessage"
+    Type="@PopupType"
+    AutoDismiss="@(PopupType == PopupAlertType.Success)"
+    OnClose="ClearPopup" />
+
+@code {
+    [Parameter] public string Type { get; set; } = "";
+
+    private List<PartnerResponseViewModel> partners = new();
+    private PartnerRequestViewModel Current = new();
+    private bool ShowModal;
+    private bool IsSaving;
+    private int? EditingId;
+
+    private string? Search;
+    private string? PopupMessage;
+    private PopupAlertType PopupType = PopupAlertType.Error;
+    private string ModalTitle = "";
+
+    private PartnerTypeEnum PartnerType =>
+        Type.Equals("suppliers", StringComparison.OrdinalIgnoreCase)
+            ? PartnerTypeEnum.Supplier
+            : Type.Equals("customers", StringComparison.OrdinalIgnoreCase)
+                ? PartnerTypeEnum.Customer
+                : throw new InvalidOperationException("Invalid partner type.");
+
+    private int PartnerTypeValue =>
+        PartnerType == PartnerTypeEnum.Supplier ? 0 : 1;
+
+    private string Title =>
+        PartnerType == PartnerTypeEnum.Supplier ? "Suppliers" : "Customers";
+
+    private string SingleTitle =>
+        PartnerType == PartnerTypeEnum.Supplier ? "Supplier" : "Customer";
+
+    private string LowerTitle => Title.ToLower();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Reload();
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        Search = e.Value?.ToString();
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        var all =
+            await Http.GetFromJsonAsync<List<PartnerResponseViewModel>>(
+                $"api/partners/filter?type={PartnerTypeValue}")
+            ?? new();
+
+        if (!string.IsNullOrWhiteSpace(Search))
+        {
+            var s = Search.Trim().ToLower();
+
+            partners = all.Where(p =>
+                p.Name.ToLower().Contains(s) ||
+                (p.Email != null && p.Email.ToLower().Contains(s)) ||
+                (p.PhoneNumber != null && p.PhoneNumber.Contains(s))
+            ).ToList();
+        }
+        else
+        {
+            partners = all;
+        }
+    }
+
+    private void OpenCreate()
+    {
+        ClearPopup();
+        EditingId = null;
+
+        Current = new PartnerRequestViewModel
+        {
+            Type = PartnerType
+        };
+
+        ModalTitle = $"Add {SingleTitle}";
+        ShowModal = true;
+    }
+
+    private void OpenEdit(PartnerResponseViewModel p)
+    {
+        ClearPopup();
+        EditingId = p.Id;
+
+        Current = new PartnerRequestViewModel
+        {
+            Type = p.Type,
+            Name = p.Name,
+            Email = p.Email ?? "",
+            PhoneNumber = p.PhoneNumber ?? "",
+            Address = p.Address
+        };
+
+        ModalTitle = $"Edit {SingleTitle}";
+        ShowModal = true;
+    }
+
+    private async Task Save()
+    {
+        IsSaving = true;
+        ClearPopup();
+
+        var res =
+            EditingId == null
+                ? await Http.PostAsJsonAsync("api/partners", Current)
+                : await Http.PutAsJsonAsync($"api/partners/{EditingId}", Current);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            PopupMessage = await ApiErrorReader.ReadMessageAsync(res);
+            PopupType = PopupAlertType.Error;
+            IsSaving = false;
+            return;
+        }
+
+        PopupMessage = $"{SingleTitle} saved successfully.";
+        PopupType = PopupAlertType.Success;
+
+        ShowModal = false;
+        IsSaving = false;
+
+        await Reload();
+    }
+
+    private async Task Delete(int id)
+    {
+        ClearPopup();
+
+        var res = await Http.DeleteAsync($"api/partners/{id}");
+
+        if (!res.IsSuccessStatusCode)
+        {
+            PopupMessage = await ApiErrorReader.ReadMessageAsync(res);
+            PopupType = PopupAlertType.Error;
+            return;
+        }
+
+        PopupMessage = $"{SingleTitle} deleted successfully.";
+        PopupType = PopupAlertType.Success;
+
+        await Reload();
+    }
+
+    private void CloseModal() => ShowModal = false;
+    private void ClearPopup() => PopupMessage = null;
+}

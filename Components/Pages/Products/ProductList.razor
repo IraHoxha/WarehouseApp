@@ -1,6 +1,142 @@
 @page "/products"
-@namespace WarehouseApp.Components.Pages.Products
 
-<h2>Products</h2>
+@using warehouseapp.ViewModels.Product
+@using warehouseapp.Components.Shared
+@using warehouseapp.Enums
+@using warehouseapp.Helpers
+@using System.Net.Http.Json
 
-<p>Blah blah</p>
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<h3 class="mb-4">Products</h3>
+
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary"
+            @onclick="GoToCreate">
+        <i class="fa-solid fa-plus me-2"></i>
+        Add Product
+    </button>
+</div>
+
+@if (!Products.Any())
+{
+    <p class="text-muted">No products found.</p>
+}
+else
+{
+    <div class="card shadow-sm">
+        <table class="table table-striped align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Stock</th>
+                    <th>Tags</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Products)
+                {
+                    <tr>
+                        <td>@p.SKU</td>
+                        <td>@p.Name</td>
+                        <td>@p.CategoryName</td>
+                        <td>@p.QuantityInStock</td>
+                        <td>
+                            @if (!p.Tags.Any())
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                            else
+                            {
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach (var t in p.Tags)
+                                    {
+                                        <span class="product-tag">
+                                            @t.TagKey: @t.Value
+                                        </span>
+                                    }
+                                </div>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-icon-green me-1"
+                                    title="Edit"
+                                    @onclick="() => EditProduct(p.Id)">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+
+                            <button class="btn btn-sm btn-icon-pink"
+                                    title="Delete"
+                                    @onclick="() => DeleteProduct(p.Id)">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<PopupAlert
+    Message="@PopupMessage"
+    Type="@PopupType"
+    AutoDismiss="@(PopupType == PopupAlertType.Success)"
+    OnClose="ClearPopup" />
+
+@code {
+    private List<ProductResponseViewModel> Products = new();
+
+    private string? PopupMessage;
+    private PopupAlertType PopupType = PopupAlertType.Error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        Products =
+            await Http.GetFromJsonAsync<List<ProductResponseViewModel>>("api/products")
+            ?? new();
+    }
+
+    private void GoToCreate()
+    {
+        Nav.NavigateTo("/products/create");
+    }
+
+    private void EditProduct(int id)
+    {
+        Nav.NavigateTo($"/products/edit/{id}");
+    }
+
+    private async Task DeleteProduct(int id)
+    {
+        ClearPopup();
+
+        var res = await Http.DeleteAsync($"api/products/{id}");
+
+        if (!res.IsSuccessStatusCode)
+        {
+            PopupMessage = await ApiErrorReader.ReadMessageAsync(res);
+            PopupType = PopupAlertType.Error;
+            return;
+        }
+
+        PopupMessage = "Product deleted successfully.";
+        PopupType = PopupAlertType.Success;
+
+        await LoadProducts();
+    }
+
+    private void ClearPopup()
+    {
+        PopupMessage = null;
+    }
+}

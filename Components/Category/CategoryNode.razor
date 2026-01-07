@@ -1,0 +1,59 @@
+@using warehouseapp.ViewModels
+@using warehouseapp.ViewModels.Category
+@inject NavigationManager Nav
+
+<div class="ms-2 mt-1">
+    <div class="d-flex align-items-center gap-2">
+
+        @if (Children.Any())
+        {
+            <button class="btn btn-sm btn-light" @onclick="Toggle">
+                @(IsOpen ? "−" : "+")
+            </button>
+        }
+        else
+        {
+            <span style="width:32px;"></span>
+        }
+
+        <strong>@Category.Name</strong>
+
+        <button class="btn btn-sm btn-icon-green ms-2"
+                title="Edit"
+                @onclick="@(() => Nav.NavigateTo($"/categories/edit/{Category.Id}"))">
+            <i class="fa-solid fa-pen"></i>
+        </button>
+
+        <button class="btn btn-sm btn-icon-pink"
+                title="Delete"
+                disabled="@Children.Any()"
+                @onclick="() => OnDelete.InvokeAsync(Category.Id)">
+            <i class="fa-solid fa-trash"></i>
+        </button>
+    </div>
+
+    @if (IsOpen && Children.Any())
+    {
+        <div class="ms-4">
+            @foreach (var child in Children)
+            {
+                <CategoryNode Category="child"
+                              AllCategories="AllCategories"
+                              OnDelete="OnDelete" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public CategoryResponseViewModel Category { get; set; } = default!;
+    [Parameter] public List<CategoryResponseViewModel> AllCategories { get; set; } = new();
+    [Parameter] public EventCallback<int> OnDelete { get; set; }
+
+    private bool IsOpen = true;
+
+    private IEnumerable<CategoryResponseViewModel> Children =>
+        AllCategories.Where(c => c.ParentCategoryId == Category.Id);
+
+    private void Toggle() => IsOpen = !IsOpen;
+}

@@ -6,9 +6,11 @@ namespace warehouseapp.Data.Models
     {
         public int PartnerId{ get; set; }
         public required Partner Partner { get; set; }
+        public OrderTypeEnum Type { get; set; }  
         public DateTime ExpirationDate { get; set; }
         public OrderStatusEnum Status { get; set; }
         public List<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         public List<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
+        public DateTime? CompletedAt { get; set; } 
     }
 }

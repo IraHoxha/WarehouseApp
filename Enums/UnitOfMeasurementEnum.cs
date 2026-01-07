@@ -1,13 +1,13 @@
-namespace warehouseapp.Enums
-{
-    public enum UnitOfMeasurementEnum
+    namespace warehouseapp.Enums
     {
-        Piece,
-        Kilogram,
-        Gram,
-        Liter,
-        Milliliter,
-        Box,
-        Pack
+        public enum UnitOfMeasurementEnum
+        {
+            Piece,
+            Kilogram,
+            Gram,
+            Liter,
+            Milliliter,
+            Box,
+            Pack
+        }
     }
-}

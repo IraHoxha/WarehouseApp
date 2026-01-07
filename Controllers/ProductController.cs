@@ -6,21 +6,27 @@ using warehouseapp.Exceptions;
 namespace warehouseapp.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/products")]
     public class ProductController : ControllerBase
     {
-        private readonly IProductService _productService;
+        private readonly IProductService _service;
 
-        public ProductController(IProductService productService)
+        public ProductController(IProductService service)
         {
-            _productService = productService;
+            _service = service;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _productService.GetAllProductsAsync();
-            return Ok(result);
+            try
+            {
+                return Ok(await _service.GetAllProductsAsync());
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
 
         [HttpGet("{id:int}")]
@@ -28,8 +34,20 @@ namespace warehouseapp.Controllers
         {
             try
             {
-                var product = await _productService.GetProductByIdAsync(id);
-                return Ok(product);
+                return Ok(await _service.GetProductByIdAsync(id));
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
+        [HttpGet("{id:int}/edit")]
+        public async Task<IActionResult> GetForEdit(int id)
+        {
+            try
+            {
+                return Ok(await _service.GetProductForEditAsync(id));
             }
             catch (NotFoundException ex)
             {
@@ -38,16 +56,11 @@ namespace warehouseapp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(ProductRequestViewModel request)
+        public async Task<IActionResult> Create([FromBody] ProductRequestViewModel model)
         {
             try
             {
-                var result = await _productService.CreateProductAsync(request);
-                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
-            }
-            catch (NotFoundException ex)
-            {
-                return NotFound(ex.Message);
+                return Ok(await _service.CreateProductAsync(model));
             }
             catch (ValidationException ex)
             {
@@ -56,20 +69,21 @@ namespace warehouseapp.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(int id, ProductRequestViewModel request)
+        public async Task<IActionResult> Update(
+            int id,
+            [FromBody] ProductRequestViewModel model)
         {
             try
             {
-                var result = await _productService.UpdateProductAsync(id, request);
-                return Ok(result);
-            }
-            catch (NotFoundException ex)
-            {
-                return NotFound(ex.Message);
+                return Ok(await _service.UpdateProductAsync(id, model));
             }
             catch (ValidationException ex)
             {
                 return BadRequest(ex.Message);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
             }
         }
 
@@ -78,7 +92,7 @@ namespace warehouseapp.Controllers
         {
             try
             {
-                await _productService.DeleteProductAsync(id);
+                await _service.DeleteProductAsync(id);
                 return NoContent();
             }
             catch (NotFoundException ex)
@@ -87,21 +101,29 @@ namespace warehouseapp.Controllers
             }
         }
 
-        [HttpPatch("{productId:int}/stock")]
-        public async Task<IActionResult> UpdateStock(int productId, [FromBody] decimal quantityChange)
+        [HttpGet("filter")]
+        public async Task<IActionResult> Filter( [FromQuery] string? search,[FromQuery] int? categoryId,[FromQuery] bool? hasExpiration)
         {
             try
             {
-                await _productService.UpdateStockAsync(productId, quantityChange);
-                return Ok();
-            }
-            catch (NotFoundException ex)
-            {
-                return NotFound(ex.Message);
+                return Ok(await _service.FilterAsync(search, categoryId, hasExpiration));
             }
             catch (ValidationException ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("select")]
+        public async Task<IActionResult> GetForSelect()
+        {
+            try
+            {
+                return Ok(await _service.GetForSelectAsync());
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
             }
         }
     }

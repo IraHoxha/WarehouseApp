@@ -1,0 +1,116 @@
+@page "/dashboard"
+
+@using warehouseapp.ViewModels.Product
+@using warehouseapp.ViewModels.Inventory
+@using warehouseapp.Enums
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<h2 class="page-title mb-4">
+    <i class="fa-solid fa-chart-line me-2"></i>
+    Dashboard
+</h2>
+
+<div class="primary-grid mb-4">
+
+    <div class="stat-card stat-in">
+        <div class="stat-header">
+            <span>Low Stock</span>
+            <i class="fa-solid fa-box-open"></i>
+        </div>
+        <div class="stat-value">@lowStock</div>
+    </div>
+
+    <div class="stat-card stat-out">
+        <div class="stat-header">
+            <span>Out of Stock</span>
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="stat-value">@outOfStock</div>
+    </div>
+
+    <div class="stat-card stat-net">
+        <div class="stat-header">
+            <span>Expiring Soon</span>
+            <i class="fa-solid fa-hourglass-half"></i>
+        </div>
+        <div class="stat-value">@expiringSoon</div>
+    </div>
+
+</div>
+
+@if (alerts.Any())
+{
+    <div class="card p-3 mb-4">
+        <h6 class="fw-semibold mb-2">
+            <i class="fa-solid fa-bell me-2"></i> Alerts
+        </h6>
+
+        <ul class="mb-0">
+            @foreach (var a in alerts)
+            {
+                <li>@a</li>
+            }
+        </ul>
+    </div>
+}
+
+<div class="card p-4">
+    <h6 class="fw-semibold mb-3">
+        <i class="fa-solid fa-bolt me-2"></i>
+        Quick Actions
+    </h6>
+
+    <div class="d-flex gap-3">
+        <button class="btn btn-wine" @onclick="GoToTransactions">
+            <i class="fa-solid me-1"></i>
+        Transaction List
+        </button>
+
+        <button class="btn btn-primary" @onclick="GoToCreateProduct">
+            <i class="fa-solid fa-box me-2"></i>
+            Add Product
+        </button>
+    </div>
+</div>
+
+@code {
+    int lowStock;
+    int outOfStock;
+    int expiringSoon;
+
+    List<string> alerts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var products =
+            await Http.GetFromJsonAsync<List<ProductResponseViewModel>>("api/products")
+            ?? new();
+
+        var transactions =
+            await Http.GetFromJsonAsync<List<InventoryTransactionResponseViewModel>>(
+                "api/inventory/transactions") ?? new();
+
+        lowStock = products.Count(p => p.QuantityInStock <= p.ReorderLevel);
+        outOfStock = products.Count(p => p.QuantityInStock == 0);
+
+        expiringSoon = transactions.Count(t =>
+            t.TransactionType == TransactionTypeEnum.In &&
+            t.ExpirationDate.HasValue &&
+            t.ExpirationDate.Value.Date <= DateTime.Today.AddDays(30) &&
+            t.Quantity > 0
+        );
+
+        if (lowStock > 0)
+            alerts.Add($"{lowStock} products are below reorder level");
+
+        if (expiringSoon > 0)
+            alerts.Add($"{expiringSoon} inventory batches are expiring soon");
+    }
+
+    void GoToTransactions()
+        => Nav.NavigateTo("/inventory/transactions");
+
+    void GoToCreateProduct()
+        => Nav.NavigateTo("/products/create");
+}

@@ -1,0 +1,112 @@
+@page "/categories/create"
+@page "/categories/edit/{Id:int?}"
+
+@using warehouseapp.Enums
+@using warehouseapp.ViewModels
+@using warehouseapp.ViewModels.Category
+@using warehouseapp.Components.Category
+@using warehouseapp.Components.Shared
+@using warehouseapp.Helpers
+@using System.Net.Http.Json
+
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<h3 class="mb-4">@Title</h3>
+
+<CategoryForm Model="Model"
+              ParentCategories="ParentCategories"
+              CurrentCategoryId="Id"
+              OnSubmit="HandleSubmit"
+              IsSaving="IsSaving"
+              ButtonText="@ButtonText" />
+
+<PopupAlert Message="@PopupMessage"
+            Type="@PopupType"
+            AutoDismiss="false"
+            OnClose="ClearPopup" />
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private CategoryRequestViewModel Model = new();
+    private List<CategorySelectItemViewModel> ParentCategories = new();
+
+    private bool IsSaving;
+    private string Title => Id == null ? "New Category" : "Edit Category";
+    private string ButtonText => Id == null ? "Save" : "Update";
+    private string? PopupMessage;
+    private PopupAlertType PopupType = PopupAlertType.Error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ParentCategories =
+                await Http.GetFromJsonAsync<List<CategorySelectItemViewModel>>(
+                    "api/category/select-all"
+                ) ?? new();
+
+            if (Id.HasValue)
+            {
+                var existing =
+                    await Http.GetFromJsonAsync<CategoryResponseViewModel>(
+                        $"api/category/{Id.Value}"
+                    );
+
+                if (existing == null)
+                {
+                    PopupMessage = "Category not found.";
+                    PopupType = PopupAlertType.Error;
+                    return;
+                }
+
+                Model = new CategoryRequestViewModel
+                {
+                    Name = existing.Name,
+                    ParentCategoryId = existing.ParentCategoryId
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            PopupMessage = ex.Message;
+            PopupType = PopupAlertType.Error;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        IsSaving = true;
+        PopupMessage = null;
+
+        HttpResponseMessage response;
+
+        try
+        {
+            response = Id == null
+                ? await Http.PostAsJsonAsync("api/category", Model)
+                : await Http.PutAsJsonAsync($"api/category/{Id.Value}", Model);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                PopupMessage = await ApiErrorReader.ReadMessageAsync(response);
+                PopupType = PopupAlertType.Error;
+                return;
+            }
+
+            Nav.NavigateTo("/categories?success=1");
+        }
+        catch (Exception ex)
+        {
+            PopupMessage = ex.Message;
+            PopupType = PopupAlertType.Error;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void ClearPopup() => PopupMessage = null;
+}

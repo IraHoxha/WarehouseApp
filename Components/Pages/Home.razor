@@ -1,7 +1,62 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<div class="home">
 
-<h1>Hello, world!</h1>
+    <section class="hero">
+        <h1>
+            Welcome back, <span class="name">Ira!</span>
+        </h1>
+        <p>Your warehouse, organized and under control.</p>
+    </section>
 
-Welcome to your new app.
+    <section class="primary-grid">
+
+        <a href="/products" class="home-card primary">
+            <i class="fa-solid fa-boxes-stacked card-icon"></i>
+            <h3>Products</h3>
+            <p>View, create and manage inventory items</p>
+        </a>
+
+        <a href="/inventory/transactions" class="home-card primary">
+            <i class="fa-solid fa-arrow-right-arrow-left card-icon"></i>
+            <h3>Transactions</h3>
+            <p>Stock in, stock out and adjustments</p>
+        </a>
+
+        <a href="/partners/suppliers" class="home-card primary">
+            <i class="fa-solid fa-truck card-icon"></i>
+            <h3>Suppliers</h3>
+            <p>Who you buy products from</p>
+        </a>
+
+        <a href="/partners/customers" class="home-card primary">
+            <i class="fa-solid fa-user-group card-icon"></i>
+            <h3>Customers</h3>
+            <p>Who you sell products to</p>
+        </a>
+
+    </section>
+
+    <section class="secondary-grid">
+
+        <div class="home-card secondary">
+            <h4>
+                <i class="fa-solid fa-chart-line me-2"></i>
+                Dashboard
+            </h4>
+            <p>Stock levels, trends and activity</p>
+            <a href="/dashboard">Open dashboard →</a>
+        </div>
+
+        <div class="home-card secondary">
+            <h4>
+                <i class="fa-solid fa-gear me-2"></i>
+                Settings
+            </h4>
+            <p>Units, categories and system preferences</p>
+            <a href="/settings/app">Open settings →</a>
+        </div>
+
+    </section>
+
+</div>

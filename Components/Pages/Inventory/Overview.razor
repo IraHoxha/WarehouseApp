@@ -1,0 +1,108 @@
+@page "/inventory/overview"
+@using warehouseapp.ViewModels.Inventory
+@using warehouseapp.Enums
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<h2 class="page-title mb-4">Inventory Overview</h2>
+
+<div class="primary-grid mb-4">
+    <div class="stat-card stat-in">
+        <div class="stat-header">
+            <span>Total IN</span>
+            <i class="fa fa-arrow-down"></i>
+        </div>
+        <div class="stat-value">@totalIn</div>
+    </div>
+
+    <div class="stat-card stat-out">
+        <div class="stat-header">
+            <span>Total OUT</span>
+            <i class="fa fa-arrow-up"></i>
+        </div>
+        <div class="stat-value">@totalOut</div>
+    </div>
+
+    <div class="stat-card stat-net">
+        <div class="stat-header">
+            <span>Net Movement</span>
+            <i class="fa fa-chart-line"></i>
+        </div>
+        <div class="stat-value">@net</div>
+    </div>
+</div>
+
+<div class="inventory-card card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Recent Transactions</strong>
+        <button class="btn btn-wine" @onclick="ViewAll">
+            View all
+        </button>
+    </div>
+
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Product</th>
+                <th class="text-end">Qty</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!transactions.Any())
+            {
+                <tr>
+                    <td colspan="4" class="empty-state">No transactions</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var t in transactions.Take(5))
+                {
+                    <tr>
+                        <td>
+                            @(t.CompletedAt?.ToString("dd MMM yyyy")
+                              ?? t.CreatedAt.ToString("dd MMM yyyy"))
+                        </td>
+                        <td>
+                            <span class="@(t.TransactionType == TransactionTypeEnum.In ? "badge-in" : "badge-out")">
+                                @t.TransactionType
+                            </span>
+                        </td>
+                        <td>@t.ProductName</td>
+                        <td class="text-end">@t.Quantity</td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private List<InventoryTransactionResponseViewModel> transactions = new();
+    private int totalIn;
+    private int totalOut;
+    private int net;
+
+    protected override async Task OnInitializedAsync()
+    {
+        transactions = await Http.GetFromJsonAsync<List<InventoryTransactionResponseViewModel>>(
+            "api/inventory/transactions") ?? new();
+
+        totalIn = transactions
+            .Where(t => t.TransactionType == TransactionTypeEnum.In)
+            .Sum(t => t.Quantity);
+
+        totalOut = transactions
+            .Where(t => t.TransactionType == TransactionTypeEnum.Out)
+            .Sum(t => t.Quantity);
+
+        net = totalIn - totalOut;
+    }
+
+    private void ViewAll()
+    {
+        Nav.NavigateTo("/inventory/transactions");
+    }
+}

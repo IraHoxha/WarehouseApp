@@ -1,14 +1,24 @@
-using warehouseapp.Data.Models;
 using warehouseapp.ViewModels.Product;
 
-namespace warehouseapp.Interfaces{
+namespace warehouseapp.Interfaces
+{
     public interface IProductService
     {
-        Task<ProductResponseViewModel> CreateProductAsync(ProductRequestViewModel request);
-        Task<ProductResponseViewModel> UpdateProductAsync(int id, ProductRequestViewModel request);
+        Task<ProductResponseViewModel> CreateProductAsync(ProductRequestViewModel model);
+        Task<ProductResponseViewModel> UpdateProductAsync(int id, ProductRequestViewModel model);
         Task<bool> DeleteProductAsync(int id);
-        Task<Product> GetProductByIdAsync(int id);  
+
+        Task<ProductResponseViewModel> GetProductByIdAsync(int id);
+        Task<ProductEditResponseViewModel> GetProductForEditAsync(int id);
         Task<List<ProductResponseViewModel>> GetAllProductsAsync();
-        Task<bool> UpdateStockAsync(int productId, decimal quantityChange);
+
+        Task<List<ProductResponseViewModel>> FilterAsync(
+            string? search,
+            int? categoryId,
+            bool? hasExpiration);
+
+        Task<bool> UpdateStockAsync(int productId, int quantityChange);
+
+        Task<List<ProductSelectItemViewModel>> GetForSelectAsync();
     }
 }

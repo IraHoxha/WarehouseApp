@@ -1,0 +1,211 @@
+@page "/orders/{Id:int}"
+
+@using warehouseapp.ViewModels.Order
+@using warehouseapp.ViewModels.Product
+@using warehouseapp.Enums
+@using System.Net.Http.Json
+@using warehouseapp.Components.Order
+@using warehouseapp.Components.Shared
+
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<h3 class="mb-4">Order #@Id</h3>
+
+@if (order == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="card shadow-sm mb-4">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <div>
+                <div class="fw-semibold">@order.PartnerName</div>
+                <small class="text-muted">
+                    Expires @order.ExpirationDate.ToString("dd MMM yyyy")
+                </small>
+            </div>
+
+            <span class="order-pill @GetStatusClass(order)">
+                @(IsExpired(order) ? "Expired" : order.Status.ToString())
+            </span>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th class="text-end">Qty</th>
+                    <th class="text-end">Unit Price</th>
+                    <th class="text-end">Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var i in order.Items)
+                {
+                    <tr>
+                        <td>@i.ProductName</td>
+                        <td class="text-end">@i.Quantity</td>
+                        <td class="text-end">@i.UnitSellingPrice</td>
+                        <td class="text-end fw-semibold">
+                            @(i.Quantity * i.UnitSellingPrice)
+                        </td>
+                        <td class="text-end">
+                            @if (order.Status == OrderStatusEnum.Completed &&
+                                 order.Type == OrderTypeEnum.Sale)
+                            {
+                                <button class="btn btn-sm btn-warning"
+                                        @onclick="() => OpenReturn(i)">
+                                    Return
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex gap-2">
+        @if (order.Status == OrderStatusEnum.Pending && !IsExpired(order))
+        {
+            <button class="btn btn-process" @onclick="Process">Process</button>
+            <button class="btn btn-cancel" @onclick="Cancel">Cancel</button>
+        }
+
+        @if (order.Status == OrderStatusEnum.Processing && !IsExpired(order))
+        {
+            <button class="btn btn-complete" @onclick="Complete">Complete</button>
+        }
+    </div>
+}
+
+<OrderReturnModal
+    Visible="@ShowReturnModal"
+    OrderId="@(order?.Id ?? 0)"
+    Products="ReturnableProducts"
+    MaxReturnQuantity="@(SelectedItem?.Quantity ?? 0)"
+    OnClose="CloseReturn" />
+
+<PopupAlert Message="@PopupMessage"
+            Type="@PopupType"
+            AutoDismiss="false"
+            OnClose="ClearPopup" />
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private OrderResponseViewModel? order;
+    private bool ShowReturnModal;
+    private OrderItemResponseViewModel? SelectedItem;
+    private string? PopupMessage;
+    private PopupAlertType PopupType = PopupAlertType.Error;
+
+    protected override async Task OnInitializedAsync()
+        => await Reload();
+
+    private async Task Reload()
+    {
+        PopupMessage = null;
+        order = await Http.GetFromJsonAsync<OrderResponseViewModel>($"api/orders/{Id}");
+        StateHasChanged();
+    }
+
+    private async Task Process()
+    {
+        PopupMessage = null;
+
+        var res = await Http.PostAsync($"api/orders/{Id}/process", null);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            PopupMessage = await res.Content.ReadAsStringAsync();
+            return;
+        }
+
+        await Reload();
+    }
+
+    private async Task Complete()
+    {
+        PopupMessage = null;
+
+        var res = await Http.PostAsync($"api/orders/{Id}/complete", null);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            PopupMessage = await res.Content.ReadAsStringAsync();
+            return;
+        }
+
+        await Reload();
+    }
+
+    private async Task Cancel()
+    {
+        PopupMessage = null;
+
+        var res = await Http.PostAsync($"api/orders/{Id}/cancel", null);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            PopupMessage = await res.Content.ReadAsStringAsync();
+            return;
+        }
+
+        Nav.NavigateTo("/orders/list", true);
+    }
+
+    private void OpenReturn(OrderItemResponseViewModel item)
+    {
+        SelectedItem = item;
+        ShowReturnModal = true;
+    }
+
+    private void CloseReturn()
+    {
+        ShowReturnModal = false;
+        SelectedItem = null;
+        _ = Reload();
+    }
+
+    private void ClearPopup()
+    {
+        PopupMessage = null;
+    }
+
+    private bool IsExpired(OrderResponseViewModel o)
+        => o.Status == OrderStatusEnum.Pending
+           && o.ExpirationDate.Date < DateTime.Today;
+
+    private List<ProductResponseViewModel> ReturnableProducts =>
+        order == null
+            ? new()
+            : order.Items
+                   .Select(i => new ProductResponseViewModel
+                   {
+                       Id = i.ProductId,
+                       Name = i.ProductName
+                   })
+                   .ToList();
+
+    private string GetStatusClass(OrderResponseViewModel o)
+    {
+        if (o.Status == OrderStatusEnum.Pending &&
+            o.ExpirationDate.Date < DateTime.Today)
+            return "expired";
+
+        return o.Status switch
+        {
+            OrderStatusEnum.Pending    => "pending",
+            OrderStatusEnum.Processing => "processing",
+            OrderStatusEnum.Completed  => "completed",
+            OrderStatusEnum.Cancelled  => "cancelled",
+            _ => "expired"
+        };
+    }
+}

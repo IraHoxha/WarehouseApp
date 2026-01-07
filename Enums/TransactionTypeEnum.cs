@@ -2,8 +2,8 @@ namespace warehouseapp.Enums
 {
     public enum TransactionTypeEnum
     {
-        In,
-        Out,
-        Return
+        In = 0,
+        Out = 1
     }
+
 }

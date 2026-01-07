@@ -1,0 +1,75 @@
+@page "/orders/purchases"
+
+@using warehouseapp.ViewModels.Order
+@using warehouseapp.Enums
+@using System.Net.Http.Json
+@using warehouseapp.Components.Order
+@using warehouseapp.ViewModels.Partner
+@using warehouseapp.ViewModels.Product
+
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<h3 class="mb-4">Purchase Orders</h3>
+
+<button class="btn btn-primary mb-3"
+        @onclick="OpenModal">
+    + New Purchase Order
+</button>
+
+<div class="card shadow-sm">
+    <OrderTable Orders="orders"
+                OnSelect="OpenDetails" />
+</div>
+
+<OrderCreateModal
+    Visible="ShowModal"
+    OrderType="OrderTypeEnum.Purchase"
+    Products="products"
+    Partners="partners"
+    OnSaved="Reload"
+    OnClose="CloseModal" />
+
+@code {
+    List<OrderResponseViewModel> orders = new();
+    List<ProductResponseViewModel> products = new();
+    List<PartnerResponseViewModel> partners = new();
+
+    bool ShowModal;
+
+    protected override async Task OnInitializedAsync()
+        => await Reload();
+
+    async Task Reload()
+    {
+        var all = await Http.GetFromJsonAsync<List<OrderResponseViewModel>>("api/orders") ?? new();
+
+        orders = all
+            .Where(o => o.Type == OrderTypeEnum.Purchase)
+            .Where(o => o.Status != OrderStatusEnum.Cancelled)
+            .ToList();
+
+        products =
+            await Http.GetFromJsonAsync<List<ProductResponseViewModel>>("api/products") ?? new();
+
+        partners =
+            (await Http.GetFromJsonAsync<List<PartnerResponseViewModel>>("api/partners") ?? new())
+            .Where(p => p.Type == PartnerTypeEnum.Supplier)
+            .ToList();
+
+        ShowModal = false;
+    }
+
+    void OpenModal()
+    {
+        ShowModal = false;
+        StateHasChanged();
+        ShowModal = true;
+    }
+
+    void CloseModal()
+        => ShowModal = false;
+
+    void OpenDetails(OrderResponseViewModel o)
+        => Nav.NavigateTo($"/orders/{o.Id}");
+}

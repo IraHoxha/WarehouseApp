@@ -2,7 +2,8 @@ namespace warehouseapp.Enums
 {
     public enum PartnerTypeEnum
     {
-        Supplier,
-        Buyer
+        Supplier = 0,
+        Customer = 1
     }
+
 }

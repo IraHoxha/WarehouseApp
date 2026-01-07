@@ -1,0 +1,145 @@
+@using warehouseapp.ViewModels.Order
+@using warehouseapp.ViewModels.Product
+@using warehouseapp.Enums
+@using warehouseapp.Components.Shared
+@using warehouseapp.Helpers
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net.Http.Json
+
+@inject HttpClient Http
+
+@if (Visible)
+{
+    <div class="modal-backdrop-custom" @onclick="Close"></div>
+
+    <div class="modal-custom">
+        <div class="modal-content p-4">
+
+            <h5 class="fw-semibold mb-3">Return Item</h5>
+
+            <EditForm Model="Model" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label class="form-label">Product</label>
+
+                    <InputSelect class="form-select" @bind-Value="Model.ProductId">
+                        <option value="0">-- Select product --</option>
+                        @foreach (var p in Products)
+                        {
+                            <option value="@p.Id">@p.Name</option>
+                        }
+                    </InputSelect>
+
+                    <ValidationMessage For="@(() => Model.ProductId)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">
+                        Quantity
+                        <small class="text-muted">(max @MaxReturnQuantity)</small>
+                    </label>
+
+                    <InputNumber class="form-control"
+                                 min="1"
+                                 @bind-Value="Model.Quantity" />
+
+                    <ValidationMessage For="@(() => Model.Quantity)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Reason</label>
+
+                    <InputSelect class="form-select"
+                                 TValue="ReturnReasonEnum?"
+                                 @bind-Value="Model.ReturnReason">
+                        <option value="">-- Select reason --</option>
+                        @foreach (var r in Enum.GetValues<ReturnReasonEnum>())
+                        {
+                            <option value="@r">@r</option>
+                        }
+                    </InputSelect>
+
+                    <ValidationMessage For="@(() => Model.ReturnReason)" />
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            disabled="@IsSaving"
+                            @onclick="Close">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary"
+                            disabled="@IsSaving">
+                        @(IsSaving ? "Processing..." : "Confirm Return")
+                    </button>
+                </div>
+            </EditForm>
+
+            <PopupAlert Message="@PopupMessage"
+                        Type="@PopupType"
+                        AutoDismiss="false"
+                        OnClose="ClearPopup" />
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public int OrderId { get; set; }
+    [Parameter] public int MaxReturnQuantity { get; set; }
+    [Parameter] public List<ProductResponseViewModel> Products { get; set; } = new();
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private OrderReturnRequestViewModel Model = new();
+    private bool IsSaving;
+
+    private string? PopupMessage;
+    private PopupAlertType PopupType = PopupAlertType.Error;
+
+    protected override void OnParametersSet()
+    {
+        if (!Visible) return;
+
+        Model = new OrderReturnRequestViewModel
+        {
+            Quantity = 1
+        };
+
+        PopupMessage = null;
+        IsSaving = false;
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (Model.Quantity > MaxReturnQuantity)
+        {
+            PopupMessage = $"Quantity cannot exceed {MaxReturnQuantity}.";
+            PopupType = PopupAlertType.Error;
+            return;
+        }
+
+        IsSaving = true;
+        PopupMessage = null;
+
+        var res = await Http.PostAsJsonAsync(
+            $"api/orders/{OrderId}/return",
+            Model);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            PopupMessage = await ApiErrorReader.ReadMessageAsync(res);
+            PopupType = PopupAlertType.Error;
+            IsSaving = false;
+            return;
+        }
+
+        await OnClose.InvokeAsync();
+    }
+
+    private void ClearPopup() => PopupMessage = null;
+    private Task Close() => OnClose.InvokeAsync();
+}

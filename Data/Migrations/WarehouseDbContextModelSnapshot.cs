@@ -35,7 +35,7 @@ namespace warehouseapp.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int?>("ParentCategoryId")
                         .HasColumnType("int");
@@ -45,7 +45,9 @@ namespace warehouseapp.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ParentCategoryId");
+                    b.HasIndex("ParentCategoryId", "Name")
+                        .IsUnique()
+                        .HasFilter("[ParentCategoryId] IS NOT NULL");
 
                     b.ToTable("Categories");
                 });
@@ -61,29 +63,40 @@ namespace warehouseapp.Migrations
                     b.Property<string>("BatchNumber")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("ExpirationDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("OrderId")
+                    b.Property<int?>("OrderId")
                         .HasColumnType("int");
 
                     b.Property<int>("PartnerId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("PartnerId1")
+                        .HasColumnType("int");
+
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("Quantity")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReturnReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
 
                     b.Property<int>("TransactionType")
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("UnitPrice")
+                    b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
@@ -95,6 +108,8 @@ namespace warehouseapp.Migrations
                     b.HasIndex("OrderId");
 
                     b.HasIndex("PartnerId");
+
+                    b.HasIndex("PartnerId1");
 
                     b.HasIndex("ProductId");
 
@@ -109,6 +124,9 @@ namespace warehouseapp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -119,6 +137,9 @@ namespace warehouseapp.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -139,7 +160,13 @@ namespace warehouseapp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("BatchNumber")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ExpirationDate")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("OrderId")
@@ -148,9 +175,8 @@ namespace warehouseapp.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("Quantity")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("UnitSellingPrice")
                         .HasPrecision(18, 4)
@@ -190,7 +216,7 @@ namespace warehouseapp.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -199,6 +225,10 @@ namespace warehouseapp.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique()
+                        .HasFilter("[PhoneNumber] IS NOT NULL");
 
                     b.ToTable("Partners");
                 });
@@ -218,7 +248,6 @@ namespace warehouseapp.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("HasExpiration")
@@ -228,13 +257,15 @@ namespace warehouseapp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("QuantityInStock")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
+                    b.Property<int>("QuantityInStock")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReorderLevel")
+                        .HasColumnType("int");
 
                     b.Property<string>("SKU")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal>("UnitCostPrice")
                         .HasPrecision(18, 4)
@@ -253,6 +284,9 @@ namespace warehouseapp.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("SKU")
+                        .IsUnique();
 
                     b.ToTable("Products");
                 });
@@ -274,18 +308,19 @@ namespace warehouseapp.Migrations
                     b.Property<int>("TagId")
                         .HasColumnType("int");
 
+                    b.Property<int>("TagValueId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
 
                     b.HasIndex("TagId");
+
+                    b.HasIndex("TagValueId");
 
                     b.ToTable("ProductTags");
                 });
@@ -313,6 +348,35 @@ namespace warehouseapp.Migrations
                     b.ToTable("Tags");
                 });
 
+            modelBuilder.Entity("warehouseapp.Data.Models.TagValue", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TagId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TagId", "Value")
+                        .IsUnique();
+
+                    b.ToTable("TagValues");
+                });
+
             modelBuilder.Entity("warehouseapp.Data.Models.Category", b =>
                 {
                     b.HasOne("warehouseapp.Data.Models.Category", "ParentCategory")
@@ -327,19 +391,22 @@ namespace warehouseapp.Migrations
                     b.HasOne("warehouseapp.Data.Models.Order", "Order")
                         .WithMany("InventoryTransactions")
                         .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("warehouseapp.Data.Models.Partner", "Partner")
-                        .WithMany("InventoryTransactions")
+                        .WithMany()
                         .HasForeignKey("PartnerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("warehouseapp.Data.Models.Partner", null)
+                        .WithMany("InventoryTransactions")
+                        .HasForeignKey("PartnerId1");
+
                     b.HasOne("warehouseapp.Data.Models.Product", "Product")
                         .WithMany("InventoryTransactions")
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Order");
@@ -371,7 +438,7 @@ namespace warehouseapp.Migrations
                     b.HasOne("warehouseapp.Data.Models.Product", "Product")
                         .WithMany("OrderItems")
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Order");
@@ -399,12 +466,31 @@ namespace warehouseapp.Migrations
                         .IsRequired();
 
                     b.HasOne("warehouseapp.Data.Models.Tag", "Tag")
-                        .WithMany("ProductTags")
+                        .WithMany()
                         .HasForeignKey("TagId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("warehouseapp.Data.Models.TagValue", "TagValue")
+                        .WithMany()
+                        .HasForeignKey("TagValueId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Product");
+
+                    b.Navigation("Tag");
+
+                    b.Navigation("TagValue");
+                });
+
+            modelBuilder.Entity("warehouseapp.Data.Models.TagValue", b =>
+                {
+                    b.HasOne("warehouseapp.Data.Models.Tag", "Tag")
+                        .WithMany("Values")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Tag");
                 });
@@ -441,7 +527,7 @@ namespace warehouseapp.Migrations
 
             modelBuilder.Entity("warehouseapp.Data.Models.Tag", b =>
                 {
-                    b.Navigation("ProductTags");
+                    b.Navigation("Values");
                 });
 #pragma warning restore 612, 618
         }

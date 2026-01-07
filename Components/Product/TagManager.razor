@@ -1,0 +1,275 @@
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Web
+@using warehouseapp.Enums
+@using warehouseapp.ViewModels.Tag
+@using warehouseapp.Components.Shared
+
+@inject HttpClient Http
+
+<div class="card tag-add-box shadow-sm">
+    <h6 class="mb-3">Product Tags</h6>
+
+    <div class="row g-3 align-items-end">
+
+        <div class="col-md-4">
+            <label class="form-label">Tag</label>
+
+            <select class="form-select"
+                    value="@selectedTagId"
+                    @onchange="OnTagChanged">
+                <option value="0">-- Select tag --</option>
+
+                @foreach (var t in allTags)
+                {
+                    <option value="@t.Id">@t.Key</option>
+                }
+
+                <option value="-1">+ Add new tag</option>
+            </select>
+
+            @if (selectedTagId == -1)
+            {
+                <input class="form-control mt-2"
+                       placeholder="New tag"
+                       @bind="newTagKey"
+                       @onkeydown="HandleNewTagKeyDown" />
+            }
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Value</label>
+
+            <select class="form-select"
+                    disabled="@(selectedTagId <= 0)"
+                    value="@selectedExistingValue"
+                    @onchange="OnValueChanged">
+                <option value="">-- Select value --</option>
+
+                @foreach (var v in tagValues)
+                {
+                    <option value="@v.Value">@v.Value</option>
+                }
+            </select>
+
+            @if (selectedTagId > 0 && string.IsNullOrWhiteSpace(selectedExistingValue))
+            {
+                <input class="form-control mt-2"
+                       placeholder="New value"
+                       @bind="newValue"
+                       @onkeydown="HandleValueKeyDown" />
+            }
+        </div>
+
+        <div class="col-md-4 d-flex justify-content-end">
+            <button class="btn btn-purple w-50"
+                    disabled="@(!CanAdd)"
+                    @onclick="AddTag">
+                Add
+            </button>
+        </div>
+
+    </div>
+</div>
+
+@if (Tags.Any())
+{
+    <div class="mt-3 d-flex flex-wrap gap-2">
+        @foreach (var t in Tags)
+        {
+            <div class="tag-chip">
+                <span><strong>@t.TagKey</strong>: @t.Value</span>
+                <button type="button"
+                        class="tag-x"
+                        @onclick="() => Remove(t.Id)">
+                    ×
+                </button>
+            </div>
+        }
+    </div>
+}
+
+<PopupAlert Message="@PopupMessage"
+            Type="PopupAlertType.Error"
+            AutoDismiss="true"
+            AutoDismissMs="2500"
+            OnClose="ClearPopup" />
+
+@code {
+    [Parameter] public int? ProductId { get; set; }
+    [Parameter] public string Mode { get; set; } = "Create";
+    [Parameter] public List<ProductTagDisplayViewModel> Tags { get; set; } = new();
+    [Parameter] public EventCallback<List<ProductTagDisplayViewModel>> TagsChanged { get; set; }
+
+    private List<TagResponseViewModel> allTags = new();
+    private List<TagValueResponseViewModel> tagValues = new();
+
+    private int selectedTagId;
+    private string? selectedExistingValue;
+    private string? newValue;
+    private string? newTagKey;
+
+    private string? PopupMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        allTags = await Http.GetFromJsonAsync<List<TagResponseViewModel>>("api/tag") ?? new();
+
+        if (Mode == "Edit" && ProductId.HasValue)
+        {
+            Tags = await Http.GetFromJsonAsync<List<ProductTagDisplayViewModel>>(
+                $"api/product-tag/{ProductId}") ?? new();
+        }
+    }
+
+    private bool CanAdd =>
+        selectedTagId > 0 &&
+        (
+            !string.IsNullOrWhiteSpace(selectedExistingValue) ||
+            !string.IsNullOrWhiteSpace(newValue)
+        );
+
+    private bool IsDuplicate(int tagId, string value) =>
+        Tags.Any(t =>
+            t.TagId == tagId &&
+            t.Value.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+
+
+    private async Task OnTagChanged(ChangeEventArgs e)
+    {
+        ClearPopup();
+
+        selectedTagId = int.TryParse(e.Value?.ToString(), out var id) ? id : 0;
+        selectedExistingValue = null;
+        newValue = null;
+        tagValues.Clear();
+
+        if (selectedTagId <= 0)
+            return;
+
+        tagValues =
+            await Http.GetFromJsonAsync<List<TagValueResponseViewModel>>(
+                $"api/tag/{selectedTagId}/values") ?? new();
+    }
+
+    private void OnValueChanged(ChangeEventArgs e)
+    {
+        selectedExistingValue = e.Value?.ToString();
+        if (!string.IsNullOrWhiteSpace(selectedExistingValue))
+            newValue = null;
+    }
+
+    private async Task HandleNewTagKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter" || string.IsNullOrWhiteSpace(newTagKey))
+            return;
+
+        var res = await Http.PostAsJsonAsync("api/tag", new { Key = newTagKey.Trim() });
+        if (!res.IsSuccessStatusCode)
+        {
+            PopupMessage = await res.Content.ReadAsStringAsync();
+            return;
+        }
+
+        var created = await res.Content.ReadFromJsonAsync<TagResponseViewModel>();
+        if (created == null)
+            return;
+
+        allTags.Add(created);
+        selectedTagId = created.Id;
+        newTagKey = null;
+        tagValues.Clear();
+    }
+
+    private async Task HandleValueKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && CanAdd)
+            await AddTag();
+    }
+
+
+    private async Task AddTag()
+    {
+        ClearPopup();
+
+        var value = !string.IsNullOrWhiteSpace(selectedExistingValue)
+            ? selectedExistingValue
+            : newValue;
+
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        value = value.Trim();
+
+        if (IsDuplicate(selectedTagId, value))
+        {
+            PopupMessage = "This tag with the same value is already added.";
+            return;
+        }
+
+        var tag = allTags.First(t => t.Id == selectedTagId);
+
+        if (Mode == "Create")
+        {
+            Tags.Add(new ProductTagDisplayViewModel
+            {
+                Id = Guid.NewGuid().GetHashCode(),
+                TagId = selectedTagId,
+                TagKey = tag.Key,
+                Value = value
+            });
+
+            await TagsChanged.InvokeAsync(Tags);
+        }
+        else
+        {
+            var res = await Http.PostAsJsonAsync(
+                "api/product-tag",
+                new ProductTagRequestViewModel
+                {
+                    ProductId = ProductId!.Value,
+                    TagId = selectedTagId,
+                    Value = value
+                });
+
+            if (!res.IsSuccessStatusCode)
+            {
+                PopupMessage = await res.Content.ReadAsStringAsync();
+                return;
+            }
+
+            var added = await res.Content.ReadFromJsonAsync<ProductTagDisplayViewModel>();
+            if (added != null)
+            {
+                Tags.Add(added);
+                await TagsChanged.InvokeAsync(Tags);
+            }
+        }
+
+        selectedExistingValue = null;
+        newValue = null;
+
+        tagValues =
+            await Http.GetFromJsonAsync<List<TagValueResponseViewModel>>(
+                $"api/tag/{selectedTagId}/values") ?? new();
+    }
+
+    private async Task Remove(int id)
+    {
+        ClearPopup();
+
+        if (Mode == "Edit")
+        {
+            var res = await Http.DeleteAsync($"api/product-tag/{id}");
+            if (!res.IsSuccessStatusCode)
+            {
+                PopupMessage = await res.Content.ReadAsStringAsync();
+                return;
+            }
+        }
+
+        Tags.RemoveAll(t => t.Id == id);
+        await TagsChanged.InvokeAsync(Tags);
+    }
+
+    private void ClearPopup() => PopupMessage = null;
+}

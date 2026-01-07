@@ -4,8 +4,8 @@ using warehouse.Data;
 using warehouseapp.Data.Models;
 using warehouseapp.Exceptions;
 using warehouseapp.Interfaces;
-using warehouseapp.ViewModels.Category;
 using warehouseapp.ViewModels;
+using warehouseapp.ViewModels.Category;
 
 namespace warehouseapp.Services
 {
@@ -19,50 +19,81 @@ namespace warehouseapp.Services
             _context = context;
             _mapper = mapper;
         }
-
-        public async Task<CategoryResponseViewModel> CreateAsync(CategoryRequestViewModel request)
+        private static string NormalizeName(string name)
         {
-            if (request.ParentCategoryId.HasValue)
-            {
-                bool parentExists = await _context.Categories
-                    .AnyAsync(c => c.Id == request.ParentCategoryId);
-                if (!parentExists)
-                    throw new NotFoundException("Parent category not found.");
-            }
+            return new string(
+                name.Trim()
+                    .ToUpperInvariant()
+                    .Where(char.IsLetterOrDigit)
+                    .ToArray()
+            );
+        }
 
-            var category = _mapper.Map<Category>(request);
+        public async Task<CategoryResponseViewModel> CreateAsync(CategoryRequestViewModel model)
+        {
+            model.Name = model.Name?.Trim();
+
+            if (string.IsNullOrWhiteSpace(model.Name))
+                throw new ValidationException("Category name is required.");
+
+            if (model.ParentCategoryId.HasValue &&
+                !await _context.Categories.AnyAsync(c => c.Id == model.ParentCategoryId))
+                throw new NotFoundException("Parent category not found.");
+
+            var normalized = NormalizeName(model.Name);
+
+            var existingNames = await _context.Categories
+                .Select(c => c.Name)
+                .ToListAsync();
+
+            bool exists = existingNames
+                .Any(name => NormalizeName(name) == normalized);
+
+            if (exists)
+                throw new ValidationException("Category with the same name already exists.");
+
+            var category = new Category
+            {
+                Name = model.Name,
+                ParentCategoryId = model.ParentCategoryId,
+                CreatedAt = DateTime.UtcNow
+            };
 
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
 
-            category = await _context.Categories
-                .Include(c => c.SubCategories)
-                .FirstAsync(c => c.Id == category.Id);
-
             return _mapper.Map<CategoryResponseViewModel>(category);
         }
 
-        public async Task<CategoryResponseViewModel> UpdateAsync(int id, CategoryRequestViewModel request)
+        public async Task<CategoryResponseViewModel> UpdateAsync(int id, CategoryRequestViewModel model)
         {
+            model.Name = model.Name?.Trim();
+
+            if (string.IsNullOrWhiteSpace(model.Name))
+                throw new ValidationException("Category name is required.");
+
             var category = await _context.Categories
-                .Include(c => c.SubCategories)
-                .FirstOrDefaultAsync(c => c.Id == id);
+                .FirstOrDefaultAsync(c => c.Id == id)
+                ?? throw new NotFoundException("Category not found.");
 
-            if (category == null)
-                throw new NotFoundException("Category not found.");
+            if (model.ParentCategoryId == id)
+                throw new ValidationException("Category cannot be its own parent.");
 
-            if (request.ParentCategoryId == id)
-                throw new ValidationException("A category cannot be its own parent.");
+            var normalized = NormalizeName(model.Name);
 
-            if (request.ParentCategoryId.HasValue)
-            {
-                bool parentExists = await _context.Categories
-                    .AnyAsync(c => c.Id == request.ParentCategoryId);
-                if (!parentExists)
-                    throw new NotFoundException("Parent category not found.");
-            }
+            var existingNames = await _context.Categories
+                .Where(c => c.Id != id)
+                .Select(c => c.Name)
+                .ToListAsync();
 
-            _mapper.Map(request, category);
+            bool exists = existingNames
+                .Any(name => NormalizeName(name) == normalized);
+
+            if (exists)
+                throw new ValidationException("Category with the same name already exists.");
+
+            category.Name = model.Name;
+            category.ParentCategoryId = model.ParentCategoryId;
             category.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -70,36 +101,27 @@ namespace warehouseapp.Services
             return _mapper.Map<CategoryResponseViewModel>(category);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task DeleteAsync(int id)
         {
+            if (await _context.Categories.AnyAsync(c => c.ParentCategoryId == id))
+                throw new ValidationException("Cannot delete category with subcategories.");
+
+            if (await _context.Products.AnyAsync(p => p.CategoryId == id))
+                throw new ValidationException("Cannot delete category with products.");
+
             var category = await _context.Categories
-                .Include(c => c.SubCategories)
-                .Include(c => c.Products)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (category == null)
-                throw new NotFoundException("Category not found.");
-
-            if (category.SubCategories.Any())
-                throw new ValidationException("Cannot delete a category that has subcategories.");
-
-            if (category.Products.Any())
-                throw new ValidationException("Cannot delete a category that has products assigned.");
+                .FirstOrDefaultAsync(c => c.Id == id)
+                ?? throw new NotFoundException("Category not found.");
 
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
-
-            return true;
         }
 
         public async Task<CategoryResponseViewModel> GetByIdAsync(int id)
         {
             var category = await _context.Categories
-                .Include(c => c.SubCategories)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (category == null)
-                throw new NotFoundException("Category not found.");
+                .FirstOrDefaultAsync(c => c.Id == id)
+                ?? throw new NotFoundException("Category not found.");
 
             return _mapper.Map<CategoryResponseViewModel>(category);
         }
@@ -107,10 +129,43 @@ namespace warehouseapp.Services
         public async Task<List<CategoryResponseViewModel>> GetAllAsync()
         {
             var categories = await _context.Categories
-                .Include(c => c.SubCategories)
+                .OrderBy(c => c.Name)
                 .ToListAsync();
 
             return _mapper.Map<List<CategoryResponseViewModel>>(categories);
+        }
+
+        public async Task<List<CategorySelectItemViewModel>> GetAllForSelectAsync()
+        {
+            return await _context.Categories
+                .OrderBy(c => c.Name)
+                .Select(c => new CategorySelectItemViewModel
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    ParentCategoryId = c.ParentCategoryId
+                })
+                .ToListAsync();
+        }
+        
+        public async Task<List<CategorySelectItemViewModel>> GetLeafForSelectAsync()
+        {
+            var parentIds = await _context.Categories
+                .Where(c => c.ParentCategoryId != null)
+                .Select(c => c.ParentCategoryId!.Value)
+                .Distinct()
+                .ToListAsync();
+
+            return await _context.Categories
+                .Where(c => !parentIds.Contains(c.Id))
+                .OrderBy(c => c.Name)
+                .Select(c => new CategorySelectItemViewModel
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    ParentCategoryId = c.ParentCategoryId
+                })
+                .ToListAsync();
         }
     }
 }

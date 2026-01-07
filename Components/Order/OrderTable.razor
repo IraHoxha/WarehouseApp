@@ -1,0 +1,89 @@
+@using warehouseapp.ViewModels.Order
+@using warehouseapp.Enums
+
+<table class="table table-hover align-middle mb-0">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Partner</th>
+            <th>Direction</th>
+            <th>Status</th>
+            <th>Expiration</th>
+            <th class="text-end">Items</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @if (Orders == null || !Orders.Any())
+        {
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                    No orders found
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var o in Orders)
+            {
+                <tr class="@(DisableRowClick ? "" : "clickable-row")"
+                    @onclick="() => HandleRowClick(o)">
+
+                    <td class="fw-semibold">#@o.Id</td>
+                    <td>@o.PartnerName</td>
+
+                    <td>
+                        <span class="order-pill @(o.Type == OrderTypeEnum.Purchase ? "in" : "out")">
+                            @(o.Type == OrderTypeEnum.Purchase ? "IN" : "OUT")
+                        </span>
+                    </td>
+
+                    <td>
+                        <span class="order-pill @GetStatusClass(o)">
+                            @o.Status
+                        </span>
+                    </td>
+
+                    <td>@o.ExpirationDate.ToString("dd MMM yyyy")</td>
+
+                    <td class="text-end fw-semibold">
+                        @o.Items.Count
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter, EditorRequired]
+    public List<OrderResponseViewModel> Orders { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<OrderResponseViewModel> OnSelect { get; set; }
+
+    [Parameter]
+    public bool DisableRowClick { get; set; }
+
+    void HandleRowClick(OrderResponseViewModel order)
+    {
+        if (!DisableRowClick)
+            OnSelect.InvokeAsync(order);
+    }
+
+    string GetStatusClass(OrderResponseViewModel o)
+    {
+        if (o.Status == OrderStatusEnum.Pending &&
+            o.ExpirationDate.Date < DateTime.Today)
+            return "expired";
+
+        return o.Status switch
+        {
+            OrderStatusEnum.Pending    => "pending",
+            OrderStatusEnum.Processing => "processing",
+            OrderStatusEnum.Completed  => "completed",
+            OrderStatusEnum.Cancelled  => "cancelled",
+            _ => "expired"
+        };
+    }
+}

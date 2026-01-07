@@ -1,0 +1,23 @@
+@page "/orders/list"
+
+@using warehouseapp.ViewModels.Order
+@using System.Net.Http.Json
+@using warehouseapp.Components.Order
+
+@inject HttpClient Http
+
+<h3 class="mb-4">Orders</h3>
+
+<div class="card shadow-sm">
+    <OrderTable Orders="orders"
+                DisableRowClick="true" />
+</div>
+
+@code {
+    List<OrderResponseViewModel> orders = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        orders = await Http.GetFromJsonAsync<List<OrderResponseViewModel>>("api/orders") ?? new();
+    }
+}

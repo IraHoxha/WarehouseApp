@@ -1,0 +1,92 @@
+@page "/categories"
+
+@using warehouseapp.Enums
+@using warehouseapp.ViewModels
+@using warehouseapp.ViewModels.Category
+@using warehouseapp.Components.Category
+@using warehouseapp.Components.Shared
+@using warehouseapp.Helpers
+@using System.Net.Http.Json
+
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Categories</h3>
+
+    <button class="btn btn-primary" @onclick="GoCreate">
+        + Add Category
+    </button>
+</div>
+
+@if (!Categories.Any())
+{
+    <p class="text-muted">No categories yet.</p>
+}
+else
+{
+    <div class="card p-3 shadow-sm">
+        @foreach (var root in RootCategories)
+        {
+            <CategoryNode Category="root"
+                          AllCategories="Categories"
+                          OnDelete="DeleteCategory" />
+        }
+    </div>
+}
+
+<PopupAlert Message="@PopupMessage"
+            Type="@PopupType"
+            AutoDismiss="@(PopupType == PopupAlertType.Success)"
+            OnClose="ClearPopup" />
+
+@code {
+    private List<CategoryResponseViewModel> Categories = new();
+    private string? PopupMessage;
+    private PopupAlertType PopupType = PopupAlertType.Error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories()
+    {
+        Categories =
+            await Http.GetFromJsonAsync<List<CategoryResponseViewModel>>(
+                "api/category"
+            ) ?? new();
+    }
+
+    private IEnumerable<CategoryResponseViewModel> RootCategories =>
+        Categories.Where(c => c.ParentCategoryId == null);
+
+    private void GoCreate()
+    {
+        Nav.NavigateTo("/categories/create");
+    }
+
+    private async Task DeleteCategory(int id)
+    {
+        ClearPopup();
+
+        var res = await Http.DeleteAsync($"api/category/{id}");
+
+        if (!res.IsSuccessStatusCode)
+        {
+            PopupMessage = await ApiErrorReader.ReadMessageAsync(res);
+            PopupType = PopupAlertType.Error;
+            return;
+        }
+
+        PopupMessage = "Category deleted successfully.";
+        PopupType = PopupAlertType.Success;
+
+        await LoadCategories();
+    }
+
+    private void ClearPopup()
+    {
+        PopupMessage = null;
+    }
+}

@@ -1,0 +1,250 @@
+@using warehouseapp.ViewModels.Order
+@using warehouseapp.ViewModels.Product
+@using warehouseapp.ViewModels.Partner
+@using warehouseapp.Enums
+@using warehouseapp.Components.Shared
+@using warehouseapp.Helpers
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net.Http.Json
+
+@inject HttpClient Http
+
+@if (Visible)
+{
+    <div class="modal-backdrop-custom" @onclick="Close"></div>
+
+    <div class="modal-custom">
+        <div class="modal-content p-4">
+
+            <h5 class="fw-semibold mb-3">
+                New @(OrderType == OrderTypeEnum.Purchase ? "Purchase" : "Sales") Order
+            </h5>
+
+            <EditForm EditContext="_editContext" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label class="form-label">Partner</label>
+                    <InputSelect class="form-select" @bind-Value="Model.PartnerId">
+                        <option value="0">Select partner</option>
+                        @foreach (var p in FilteredPartners)
+                        {
+                            <option value="@p.Id">@p.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.PartnerId)" />
+                </div>
+
+                <!-- ORDER EXPIRATION -->
+                <div class="mb-4">
+                    <label class="form-label">Order Expiration</label>
+                    <InputDate class="form-control" @bind-Value="Model.ExpirationDate" />
+                    <ValidationMessage For="@(() => Model.ExpirationDate)" />
+                </div>
+
+                <h6 class="fw-semibold mb-2">Items</h6>
+
+                @foreach (var item in Model.Items)
+                {
+                    <div class="row g-2 mb-2">
+
+                        <div class="col-4">
+                            <label class="form-label small text-muted">Product</label>
+                            <InputSelect class="form-select" @bind-Value="item.ProductId">
+                                <option value="0">Select product</option>
+                                @foreach (var p in Products)
+                                {
+                                    <option value="@p.Id">@p.Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => item.ProductId)" />
+                        </div>
+
+                        <div class="col-2">
+                            <label class="form-label small text-muted">Qty</label>
+                            <InputNumber class="form-control"
+                                         min="1"
+                                         @bind-Value="item.Quantity" />
+                            <ValidationMessage For="@(() => item.Quantity)" />
+                        </div>
+
+                        <div class="col-2">
+                            <label class="form-label small text-muted">Unit Price</label>
+                            <InputNumber class="form-control"
+                                         min="0.01"
+                                         step="0.01"
+                                         @bind-Value="item.UnitSellingPrice" />
+                            <ValidationMessage For="@(() => item.UnitSellingPrice)" />
+                        </div>
+
+                        @if (OrderType == OrderTypeEnum.Purchase)
+                        {
+                            <div class="col-2">
+                                <label class="form-label small text-muted">Batch</label>
+                                <InputText class="form-control"
+                                           @bind-Value="item.BatchNumber" />
+                                <ValidationMessage For="@(() => item.BatchNumber)" />
+                            </div>
+
+                            <div class="col-2">
+                                <label class="form-label small text-muted">Batch Expiry</label>
+                                <InputDate class="form-control"
+                                           @bind-Value="item.ExpirationDate" />
+                                <ValidationMessage For="@(() => item.ExpirationDate)" />
+                            </div>
+                        }
+                    </div>
+                }
+
+                <button type="button"
+                        class="btn btn-add-item btn-sm mb-3"
+                        @onclick="AddItem">
+                    <i class="fa-solid fa-plus me-1"></i>
+                    Add Item
+                </button>
+
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            @onclick="Close">
+                        Cancel
+                    </button>
+
+                    <button type="submit" class="btn btn-primary">
+                        Create Order
+                    </button>
+                </div>
+            </EditForm>
+
+            <PopupAlert Message="@PopupMessage"
+                        Type="PopupAlertType.Error"
+                        AutoDismiss="false"
+                        OnClose="ClearPopup" />
+        </div>
+    </div>
+}
+
+@code {
+    private const int MinPurchaseShelfLifeDays = 30;
+
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public OrderTypeEnum OrderType { get; set; }
+    [Parameter] public List<ProductResponseViewModel> Products { get; set; } = new();
+    [Parameter] public List<PartnerResponseViewModel> Partners { get; set; } = new();
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private OrderRequestViewModel Model = new();
+    private EditContext? _editContext;
+    private ValidationMessageStore? _messages;
+    private string? PopupMessage;
+
+    private List<PartnerResponseViewModel> FilteredPartners =>
+        OrderType == OrderTypeEnum.Purchase
+            ? Partners.Where(p => p.Type == PartnerTypeEnum.Supplier).ToList()
+            : Partners.Where(p => p.Type == PartnerTypeEnum.Customer).ToList();
+
+    protected override void OnParametersSet()
+    {
+        if (!Visible) return;
+
+        Model = new OrderRequestViewModel
+        {
+            Type = OrderType,
+            ExpirationDate = DateTime.Today.AddDays(7),
+            Items = new()
+            {
+                new OrderItemRequestViewModel
+                {
+                    Quantity = 1,
+                    UnitSellingPrice = 1m,
+                    BatchNumber = OrderType == OrderTypeEnum.Purchase
+                        ? $"BATCH-{DateTime.Now:yyyyMMdd-HHmm}"
+                        : null
+                }
+            }
+        };
+
+        _editContext = new EditContext(Model);
+        _messages = new ValidationMessageStore(_editContext);
+        _editContext.OnValidationRequested += ValidateForm;
+    }
+
+    private void ValidateForm(object? sender, ValidationRequestedEventArgs e)
+    {
+        _messages!.Clear();
+
+        if (Model.PartnerId <= 0)
+            AddError(Model, nameof(Model.PartnerId), "Partner is required.");
+
+        foreach (var item in Model.Items)
+        {
+            if (item.ProductId <= 0)
+                AddError(item, nameof(item.ProductId), "Product required.");
+
+            if (item.Quantity <= 0)
+                AddError(item, nameof(item.Quantity), "Quantity must be > 0.");
+
+            if (item.UnitSellingPrice <= 0)
+                AddError(item, nameof(item.UnitSellingPrice), "Price must be > 0.");
+
+            if (OrderType == OrderTypeEnum.Purchase)
+            {
+                if (string.IsNullOrWhiteSpace(item.BatchNumber))
+                    AddError(item, nameof(item.BatchNumber), "Batch required.");
+
+                if (!item.ExpirationDate.HasValue ||
+                    item.ExpirationDate.Value < DateTime.Today.AddDays(MinPurchaseShelfLifeDays))
+                {
+                    AddError(
+                        item,
+                        nameof(item.ExpirationDate),
+                        $"Expiration must be ≥ {MinPurchaseShelfLifeDays} days from today."
+                    );
+                }
+            }
+        }
+
+        _editContext!.NotifyValidationStateChanged(); 
+    }
+
+    private void AddError(object model, string field, string msg)
+        => _messages!.Add(new FieldIdentifier(model, field), msg);
+
+    private void AddItem()
+    {
+        Model.Items.Add(new OrderItemRequestViewModel
+        {
+            Quantity = 1,
+            UnitSellingPrice = 1m,
+            BatchNumber = OrderType == OrderTypeEnum.Purchase
+                ? $"BATCH-{DateTime.Now:yyyyMMdd-HHmm}"
+                : null
+        });
+
+        _editContext!.NotifyValidationStateChanged();
+    }
+
+    private async Task HandleSubmit()
+    {
+        PopupMessage = null;
+
+        if (_editContext == null || !_editContext.Validate())
+            return;
+
+        var res = await Http.PostAsJsonAsync("api/orders", Model);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            PopupMessage = await ApiErrorReader.ReadMessageAsync(res);
+            return;
+        }
+
+        await OnSaved.InvokeAsync();
+        await OnClose.InvokeAsync();
+    }
+
+    private void ClearPopup() => PopupMessage = null;
+    private Task Close() => OnClose.InvokeAsync();
+}

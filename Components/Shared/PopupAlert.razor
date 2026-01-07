@@ -1,0 +1,39 @@
+@using warehouseapp.Enums
+@if (!string.IsNullOrWhiteSpace(Message))
+{
+    <div class="popup-alert @GetClass()">
+        <div class="popup-content">
+            <span>@Message</span>
+            <button class="popup-close" @onclick="Close">×</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public PopupAlertType Type { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public bool AutoDismiss { get; set; } = false;
+    [Parameter] public int AutoDismissMs { get; set; } = 2500;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AutoDismiss && !string.IsNullOrWhiteSpace(Message))
+        {
+            await Task.Delay(AutoDismissMs);
+            await Close();
+        }
+    }
+
+    private async Task Close()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    private string GetClass() => Type switch
+    {
+        PopupAlertType.Success => "popup-success",
+        PopupAlertType.Error => "popup-error",
+        PopupAlertType.Warning => "popup-warning",
+        _ => ""
+    };
+}

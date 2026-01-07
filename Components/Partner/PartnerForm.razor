@@ -1,0 +1,45 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using warehouseapp.ViewModels.Partner
+
+<EditForm Model="Model"
+          OnValidSubmit="HandleValidSubmit"
+          id="partner-form">
+
+    <DataAnnotationsValidator />
+
+    <div class="row g-3">
+
+        <div class="col-md-6">
+            <label class="form-label">Name</label>
+            <InputText class="form-control" @bind-Value="Model.Name" />
+            <ValidationMessage For="@(() => Model.Name)" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <InputText class="form-control" @bind-Value="Model.Email" />
+            <ValidationMessage For="@(() => Model.Email)" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Phone Number</label>
+            <InputText class="form-control" @bind-Value="Model.PhoneNumber" />
+            <ValidationMessage For="@(() => Model.PhoneNumber)" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Address</label>
+            <InputText class="form-control" @bind-Value="Model.Address" />
+            <ValidationMessage For="@(() => Model.Address)" />
+        </div>
+
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public PartnerRequestViewModel Model { get; set; } = new();
+    [Parameter] public EventCallback OnSubmit { get; set; }
+
+    private async Task HandleValidSubmit()
+        => await OnSubmit.InvokeAsync();
+}

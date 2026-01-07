@@ -1,0 +1,61 @@
+@using warehouseapp.ViewModels.Partner
+@using Microsoft.AspNetCore.Components.Forms
+
+@if (Visible)
+{
+    <div class="modal-backdrop-custom" @onclick="Close"></div>
+
+    <div class="modal-custom" @onclick:stopPropagation="true">
+        <div class="modal-content">
+
+            <div class="modal-header px-4 py-3 d-flex align-items-center">
+                <h5 class="modal-title">@Title</h5>
+
+                <button type="button"
+                        class="btn-close ms-auto"
+                        disabled="@IsSaving"
+                        @onclick="Close">
+                </button>
+            </div>
+
+            <div class="modal-body px-4 py-3">
+                <PartnerForm Model="Model"
+                             OnSubmit="HandleSubmit" />
+            </div>
+
+            <div class="modal-footer px-4 py-3 d-flex justify-content-end gap-2">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        disabled="@IsSaving"
+                        @onclick="Close">
+                    Cancel
+                </button>
+
+                <button type="submit"
+                        form="partner-form"
+                        class="btn btn-primary"
+                        disabled="@IsSaving">
+                    @(IsSaving ? "Saving..." : SaveButtonText)
+                </button>
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string SaveButtonText { get; set; } = "Save";
+    [Parameter] public bool IsSaving { get; set; }
+    [Parameter] public PartnerRequestViewModel Model { get; set; } = new();
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private Task HandleSubmit()
+        => OnSubmit.InvokeAsync();
+
+    private Task Close()
+        => OnClose.InvokeAsync();
+}

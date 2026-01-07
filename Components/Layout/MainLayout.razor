@@ -1,13 +1,17 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="layout-wrapper d-flex flex-column">
-    <TopNav />
+<div class="d-flex h-100">
 
-    <div class="d-flex flex-grow-1">
-        <SideBar />
+    <SideBar />
 
-        <main class="content p-4">
+    <div class="flex-grow-1 d-flex flex-column">
+
+        <TopNav />
+
+        <div class="content-area p-4">
             @Body
-        </main>
+        </div>
+
     </div>
+
 </div>
